@@ -1,0 +1,18 @@
+{
+  "name": "looks-like-work",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "author": "chenjiabin",
+  "type": "module",
+  "description": "伪装成 VS Code 工作区的单文件阅读器：共享 shell 层 + 可插拔数据源（EPUB / PDF / V2EX）",
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node build.mjs --watch",
+    "test": "node test/unzip.test.mjs && node test/wrap.test.mjs && node test/usage.test.mjs && node test/codegen.test.mjs && node test/parse.test.mjs && node test/toc.test.mjs && node test/shell.test.mjs && node test/agent.test.mjs && node test/menu.test.mjs && node test/open.test.mjs && node test/fallback.test.mjs && node test/pdf-extract.test.mjs && node test/pdf.test.mjs"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "^6.2.5",
+    "linkedom": "^0.18.13"
+  }
+}

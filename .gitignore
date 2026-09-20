@@ -1,0 +1,24 @@
+# 依赖
+node_modules/
+
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+
+# 日志与临时文件
+*.log
+npm-debug.log*
+.tmp/
+*.bak
+*.bak[0-9]
+
+# 注意：dist/ 是**故意提交**的。
+# 这个项目的交付物就是那两个单文件 HTML，提交后别人 clone 或直接下载即可使用，
+# 不需要装 Node 和依赖。重新生成用 `npm run build`。

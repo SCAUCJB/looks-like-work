@@ -1,0 +1,128 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R /Outlines 20 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [10 0 R 11 0 R 12 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 30 0 R >>
+endobj
+11 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 31 0 R >>
+endobj
+12 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 32 0 R >>
+endobj
+20 0 obj
+<< /Type /Outlines /First 21 0 R /Last 22 0 R /Count 2 >>
+endobj
+21 0 obj
+<< /Title (Chapter One) /Parent 20 0 R /Next 22 0 R /Dest [10 0 R /XYZ 0 792 0] >>
+endobj
+22 0 obj
+<< /Title (Chapter Two) /Parent 20 0 R /Prev 21 0 R /Dest [12 0 R /XYZ 0 792 0] >>
+endobj
+30 0 obj
+<< /Length 334 >>
+stream
+BT
+/F1 16 Tf
+1 0 0 1 72 760 Tm
+(Chapter One) Tj
+/F1 12 Tf
+1 0 0 1 72 720 Tm
+(This is the first paragraph of chapter one. It runs) Tj
+/F1 12 Tf
+1 0 0 1 72 706 Tm
+(across two lines to test paragraph joining.) Tj
+/F1 12 Tf
+1 0 0 1 72 672 Tm
+(A second paragraph starts here after a bigger gap.) Tj
+/F1 9 Tf
+1 0 0 1 300 40 Tm
+(- 1 -) Tj
+ET
+endstream
+endobj
+31 0 obj
+<< /Length 250 >>
+stream
+BT
+/F1 12 Tf
+1 0 0 1 72 720 Tm
+(It continues onto the second page without a break.) Tj
+/F1 12 Tf
+1 0 0 1 72 686 Tm
+(Another paragraph with a hyphen-) Tj
+/F1 12 Tf
+1 0 0 1 72 672 Tm
+(ated word across lines.) Tj
+/F1 9 Tf
+1 0 0 1 300 40 Tm
+(- 2 -) Tj
+ET
+endstream
+endobj
+32 0 obj
+<< /Length 251 >>
+stream
+BT
+/F1 16 Tf
+1 0 0 1 72 760 Tm
+(Chapter Two) Tj
+/F1 12 Tf
+1 0 0 1 72 720 Tm
+(The second chapter begins with this sentence.) Tj
+/F1 12 Tf
+1 0 0 1 72 706 Tm
+(And this is its second line of the same paragraph.) Tj
+/F1 9 Tf
+1 0 0 1 300 40 Tm
+(- 3 -) Tj
+ET
+endstream
+endobj
+xref
+0 33
+0000000000 65535 f 
+0000000009 00000 n 
+0000000075 00000 n 
+0000000147 00000 n 
+0000000000 65535 f 
+0000000000 65535 f 
+0000000000 65535 f 
+0000000000 65535 f 
+0000000000 65535 f 
+0000000000 65535 f 
+0000000217 00000 n 
+0000000345 00000 n 
+0000000473 00000 n 
+0000000000 65535 f 
+0000000000 65535 f 
+0000000000 65535 f 
+0000000000 65535 f 
+0000000000 65535 f 
+0000000000 65535 f 
+0000000000 65535 f 
+0000000601 00000 n 
+0000000675 00000 n 
+0000000774 00000 n 
+0000000000 65535 f 
+0000000000 65535 f 
+0000000000 65535 f 
+0000000000 65535 f 
+0000000000 65535 f 
+0000000000 65535 f 
+0000000000 65535 f 
+0000000873 00000 n 
+0000001259 00000 n 
+0000001561 00000 n 
+trailer
+<< /Size 33 /Root 1 0 R >>
+startxref
+1864
+%%EOF
