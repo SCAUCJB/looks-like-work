@@ -204,56 +204,108 @@ function parseNcx(text, ncxPath) {
 }
 
 /**
- * 把 TOC 摊平成 href -> 条目信息。
+ * 把 TOC 摊平成「条目索引 + 分组索引」。
  *
- * 关键是记 **parent（父章节的 href）**，而不是只记 depth 数字。
- * 章节顺序取自 spine，depth 一旦按 spine 顺序重排就还原不出真实父子关系了：
- * TOC 里 A 有个子章 C，但 spine 里 B 夹在 A 和 C 中间，
- * depth 序列就成了 [0, 0, 1]，栈式重建只能把 C 挂到最近的 B 上——挂错了。
+ * 两个关键设计：
  *
- * 同一个文件被多个 TOC 条目指向（单文件多章，靠 #anchor 区分）时，
- * 第一个条目作为这个文件的标题，其余记进 anchors，否则目录里会整段消失。
+ * 1. **记 parent（父条目的 id），不是 depth 数字。**
+ *    章节顺序取自 spine，depth 一旦按 spine 顺序重排就还原不出真实父子关系了：
+ *    TOC 里 A 有个子章 C，但 spine 里 B 夹在 A 和 C 中间，
+ *    depth 序列就成了 [0, 0, 1]，栈式重建只能把 C 挂到最近的 B 上——挂错了。
+ *
+ * 2. **分组节点（group）与文件条目分开。**
+ *    「第一部分」这类条目常常不拥有自己的文件，只是个壳。两种写法：
+ *      - `<span>第一部分</span>` 完全没有 href
+ *      - `<a href="ch1.xhtml">第一部分</a>` 直接指向它第一章的文件
+ *    后者尤其坑：壳先到先得占住了 href，第一章再来就没位置了，
+ *    于是**每一部分的第一章**要么凭空消失、要么被降级成锚点排到末尾。
+ *    所以这里的规则是：**壳让位给子条目**，自己降为 group 只保留标题。
  *
  * @param {TocNode[]} toc
- * @returns {Map<string, {label: string, depth: number, parent: string|null, order: number,
- *                        anchors: {label: string, anchor: string, depth: number}[]}>}
+ * @returns {{
+ *   index: Map<string, {label: string, depth: number, parent: string|null, order: number,
+ *                       anchors: {label: string, anchor: string, depth: number}[]}>,
+ *   groups: Map<string, {label: string, depth: number, parent: string|null, order: number}>
+ * }}
  */
 export function buildTocIndex(toc) {
+  /** href -> 条目 */
   const index = new Map();
+  /** 合成 id -> 分组条目（没有自己的文件） */
+  const groups = new Map();
   let order = 0;
 
-  const walk = (nodes, parentHref, depth) => {
+  /** 解析不出标题的条目不配拥有层级——建出来就是一层空文件夹 */
+  const isMeaningful = (label) => !!label && label !== "(untitled)";
+
+  /**
+   * 这个节点是不是个「壳」——只起分组作用，href 只是指向它管辖的第一章。
+   *
+   * 判据是**第一个直接子节点跟它同文件**。壳的 href 表达的是
+   * 「这一部分从这里开始」，所以必然落在第一个子上。
+   *
+   * 只看第一个子，是为了不误伤「章 + 章内小节」：
+   *
+   *     一 (a.html)
+   *       一.1 (b.html)        ← 第一个子是别的文件
+   *       一.2 (a.html#s2)     ← 指回自己，这是章内锚点，不是来抢文件的
+   *
+   * 这里的「一」是有正文的真实章节，不能降级。
+   */
+  const isShell = (node) => {
+    if (!node.href) return false;
+    const first = (node.children || [])[0];
+    return !!first && first.href === node.href;
+  };
+
+  const walk = (nodes, parentId, depth) => {
     for (const node of nodes) {
-      const href = node.href;
-      if (href) {
-        if (!index.has(href)) {
-          index.set(href, {
-            label: node.label,
-            depth,
-            // 自引用要挡掉：子条目指向同一个文件时 parent 会等于自己
-            parent: parentHref && parentHref !== href ? parentHref : null,
-            order: order++,
-            anchors: [],
-          });
-        } else if (node.anchor) {
-          // 同一文件的后续条目：作为节内锚点保留，别让它从目录里消失
-          index.get(href).anchors.push({ label: node.label, anchor: node.anchor, depth });
-        }
+      let selfId = null;
+
+      if (node.href && !isShell(node) && !index.has(node.href)) {
+        // 普通章节：占住这个文件
+        selfId = node.href;
+        index.set(node.href, {
+          label: node.label,
+          depth,
+          // 自引用要挡掉：子条目指向同一个文件时 parent 会等于自己
+          parent: parentId && parentId !== node.href ? parentId : null,
+          order: order++,
+          anchors: [],
+        });
+      } else if (node.href && index.has(node.href) && node.anchor) {
+        // 同一文件的后续条目：作为节内锚点保留，别让它从目录里消失。
+        // 它自己不成节点，所以子条目继续挂在这个文件上。
+        index.get(node.href).anchors.push({ label: node.label, anchor: node.anchor, depth });
+        selfId = node.href;
+      } else if (isMeaningful(node.label)) {
+        // 壳（第一部分 / Part I）或没有链接的分组标题：只保留标题，不占文件
+        selfId = `::g${order++}`;
+        groups.set(selfId, {
+          label: node.label,
+          depth,
+          parent: parentId && parentId !== selfId ? parentId : null,
+          order: order - 1,
+        });
+      } else {
+        // 没名字又没文件的节点（跳级目录里用来占位的空 li）：
+        // 透传父级，别凭空造出一层无名文件夹
+        selfId = parentId;
       }
-      if (node.children?.length) {
-        // 子节点的父级是当前条目；当前条目没有 href 时（纯分组标题）沿用上一层
-        walk(node.children, href || parentHref, depth + 1);
-      }
+
+      if (node.children?.length) walk(node.children, selfId, depth + 1);
     }
   };
 
   walk(toc, null, 0);
-  return index;
+  return { index, groups };
 }
 
 /** 兼容旧调用：只要 href -> {label, depth} */
 export function flattenToc(toc) {
   const out = new Map();
-  for (const [href, v] of buildTocIndex(toc)) out.set(href, { label: v.label, depth: v.depth });
+  for (const [href, v] of buildTocIndex(toc).index) {
+    out.set(href, { label: v.label, depth: v.depth });
+  }
   return out;
 }

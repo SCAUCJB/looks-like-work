@@ -141,16 +141,62 @@ console.log("\n=== E. buildTocIndex 的基本约定 ===");
       { label: "二", href: "c.html", anchor: "", children: [] },
     ] },
   ];
-  const idx = buildTocIndex(toc);
+  const { index: idx, groups } = buildTocIndex(toc);
   console.log("  索引:", [...idx].map(([h, v]) => `${h}(parent=${v.parent}, anchors=${v.anchors.length})`).join(" | "));
+  console.log("  分组:", [...groups].map(([g, v]) => `${g}=${v.label}`).join(" | ") || "—");
   assert.equal(idx.get("a.html").parent, null, "顶层条目不该有父级");
   assert.equal(idx.get("b.html").parent, "a.html", "子章父级不对");
   assert.equal(idx.get("a.html").anchors.length, 1, "指回自己的条目应记为锚点");
-  // 无链接的分组标题：它的子项应该沿用更上层的父级，而不是挂到一个不存在的 href 上
-  assert.equal(idx.get("c.html").parent, null, "无链接分组下的条目父级处理错误");
+  // 有名字的无链接分组：保留成 group，子项挂在它下面（以前整个标题会丢掉）
+  const gid = idx.get("c.html").parent;
+  assert.ok(gid && groups.has(gid), "无链接分组应该保留成 group");
+  assert.equal(groups.get(gid).label, "分组（无链接）", "分组标题丢了");
   // order 递增，可用于判断 TOC 顺序
   assert.ok(idx.get("a.html").order < idx.get("b.html").order, "order 没有按 TOC 顺序递增");
-  console.log("  ✓ 自引用 / 无链接分组 / order 都正确");
+  console.log("  ✓ 自引用 / 有名分组 / order 都正确");
+}
+
+console.log("\n=== F. 无名占位节点不该造出空层级 ===");
+{
+  const { index, groups } = buildTocIndex([
+    { label: "(untitled)", href: "", anchor: "", children: [
+      { label: "正文", href: "x.html", anchor: "", children: [] },
+    ] },
+  ]);
+  assert.equal(groups.size, 0, "没名字又没文件的节点不该建分组");
+  assert.equal(index.get("x.html").parent, null, "无名节点应该透传父级");
+  console.log("  ✓ 无名占位节点被跳过");
+}
+
+console.log("\n=== G. 壳条目让位给第一章 ===");
+{
+  // 「第一部分」的 href 直接指向它第一章的文件——这是最常见的写法，
+  // 先到先得的话第一章就被壳吞掉了。
+  const { index, groups } = buildTocIndex([
+    { label: "第一部分", href: "ch1.html", anchor: "", children: [
+      { label: "第1章", href: "ch1.html", anchor: "", children: [] },
+      { label: "第2章", href: "ch2.html", anchor: "", children: [] },
+    ] },
+  ]);
+  assert.equal(index.get("ch1.html").label, "第1章", "ch1.html 应该归第一章，不是壳");
+  const g = index.get("ch1.html").parent;
+  assert.ok(g && groups.get(g)?.label === "第一部分", "壳应该降级成分组并保留标题");
+  assert.equal(index.get("ch2.html").parent, g, "同部分的其它章要挂在同一个分组下");
+  console.log("  ✓ 壳降级成分组，第一章拿回自己的文件");
+}
+
+console.log("\n=== H. 单文件多章不受壳规则误伤 ===");
+{
+  // 同一个 xhtml 被一串**平级**条目用 #anchor 切开，
+  // 这里没有父子争抢，不该触发让位。
+  const { index, groups } = buildTocIndex([
+    { label: "第一章", href: "ch.html", anchor: "", children: [] },
+    { label: "第二章", href: "ch.html", anchor: "c2", children: [] },
+  ]);
+  assert.equal(index.get("ch.html").label, "第一章", "平级同文件条目不该触发让位");
+  assert.equal(index.get("ch.html").anchors.length, 1, "后续条目应记为锚点");
+  assert.equal(groups.size, 0, "不该产生多余分组");
+  console.log("  ✓ 锚点分章行为不变");
 }
 
 console.log("\n✓ 目录层级与排序测试通过");

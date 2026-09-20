@@ -275,13 +275,34 @@ export function createBookSource({ adapter, size, onOpenLibrary, onPickFile, rec
       });
 
       const roots = [];
-      chapters.forEach((ch) => {
-        const self = wrap.get(ch.href);
-        const parent = ch.parent ? wrap.get(ch.parent) : null;
-        // 父级不在可读章节里就退回顶层，别把整棵子树丢掉
+
+      /**
+       * 分组节点（第一部分 / Part I）没有自己的文件，所以也没有 spine 位置。
+       * 按需创建，位置由第一个挂进来的子决定——因为下面是按 spine 顺序遍历的，
+       * 这样分组自然就落在它第一章所在的位置上。
+       */
+      const groupEntries = new Map();
+      const ensureGroup = (gid) => {
+        const hit = groupEntries.get(gid);
+        if (hit) return hit;
+        const g = adapter.groups?.get(gid);
+        if (!g) return null;
+        const entry = { group: g, ch: null, node: null, children: [] };
+        groupEntries.set(gid, entry);
+        attach(entry, g.parent);   // 分组自己也可能挂在别的分组下
+        return entry;
+      };
+
+      /** 把一个条目挂到父级下；父级不存在或就是自己就退回顶层 */
+      const attach = (self, parentId) => {
+        const parent = parentId
+          ? (wrap.get(parentId) || ensureGroup(parentId))
+          : null;
         if (parent && parent !== self) parent.children.push(self);
         else roots.push(self);
-      });
+      };
+
+      chapters.forEach((ch) => attach(wrap.get(ch.href), ch.parent));
 
       /** 同一文件里的其它 TOC 条目（单文件多章，靠 #anchor 区分） */
       const anchorNodes = (ch) => (ch.anchors || []).map((a) => ({
@@ -292,8 +313,23 @@ export function createBookSource({ adapter, size, onOpenLibrary, onPickFile, rec
         iconColor: "#7a8aa0",
       }));
 
-      /** 有子节点的章节要从 file 变成 folder，自身内容作为第一个子项 */
+      /**
+       * 条目 -> 树节点。
+       * 分组条目没有自己的文件，直接就是文件夹；
+       * 有文件又有子节点的章节从 file 变成 folder，自身内容作为第一个子项。
+       */
       const build = (entry) => {
+        if (!entry.ch) {
+          // 纯分组：只有标题
+          const kids = entry.children.map(build);
+          return {
+            kind: "folder",
+            id: `dir-${entry.group.id}`,
+            label: entry.group.label,
+            meta: String(kids.length),
+            children: kids,
+          };
+        }
         const kids = [...entry.children.map(build), ...anchorNodes(entry.ch)];
         if (!kids.length) return entry.node;
         const self = { ...entry.node };

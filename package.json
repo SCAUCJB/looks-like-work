@@ -9,7 +9,7 @@
   "scripts": {
     "build": "node build.mjs",
     "dev": "node build.mjs --watch",
-    "test": "node test/unzip.test.mjs && node test/wrap.test.mjs && node test/usage.test.mjs && node test/codegen.test.mjs && node test/parse.test.mjs && node test/toc.test.mjs && node test/shell.test.mjs && node test/agent.test.mjs && node test/menu.test.mjs && node test/open.test.mjs && node test/fallback.test.mjs && node test/pdf-extract.test.mjs && node test/pdf.test.mjs"
+    "test": "node test/unzip.test.mjs && node test/wrap.test.mjs && node test/usage.test.mjs && node test/codegen.test.mjs && node test/parse.test.mjs && node test/toc.test.mjs && node test/parts.test.mjs && node test/shell.test.mjs && node test/agent.test.mjs && node test/menu.test.mjs && node test/open.test.mjs && node test/fallback.test.mjs && node test/pdf-extract.test.mjs && node test/pdf.test.mjs"
   },
   "devDependencies": {
     "fake-indexeddb": "^6.2.5",

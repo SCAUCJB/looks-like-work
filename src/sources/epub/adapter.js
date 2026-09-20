@@ -24,7 +24,7 @@ const decoder = new TextDecoder("utf-8");
  */
 export function createEpubAdapter(files) {
   const book = parseBook(files);
-  const tocIndex = buildTocIndex(book.toc);
+  const { index: tocIndex, groups: tocGroups } = buildTocIndex(book.toc);
 
   // 只有 xhtml/html 才是可读章节，图片和 CSS 不进文件树。
   // 顺序取自 spine（那才是真正的阅读顺序），层级取自 TOC 的父子关系。
@@ -33,16 +33,29 @@ export function createEpubAdapter(files) {
   );
   const inSpine = new Set(readable.map((s) => s.href));
 
-  /** 往上找第一个确实在 spine 里的祖先——TOC 可能指向不参与阅读顺序的文件 */
-  function resolveParent(href) {
-    const seen = new Set([href]);
-    let p = tocIndex.get(href)?.parent || null;
+  const parentOf = (id) => tocIndex.get(id)?.parent ?? tocGroups.get(id)?.parent ?? null;
+
+  /**
+   * 往上找第一个能当父级的祖先。
+   * 分组节点（第一部分 / Part I）总是有效——它本来就不对应文件；
+   * 指向文件的条目则要求那个文件确实在 spine 里，
+   * 否则（比如 TOC 指向了不参与阅读顺序的扉页）继续上溯，别把整棵子树丢掉。
+   */
+  function resolveParent(startId) {
+    const seen = new Set();
+    let p = startId;
     while (p && !seen.has(p)) {
-      if (inSpine.has(p)) return p;
       seen.add(p);
-      p = tocIndex.get(p)?.parent || null;
+      if (tocGroups.has(p) || inSpine.has(p)) return p;
+      p = parentOf(p);
     }
     return null;
+  }
+
+  // 分组节点的父级同样要解析一遍，它们也可能挂在别的分组下
+  const groups = new Map();
+  for (const [id, g] of tocGroups) {
+    groups.set(id, { id, label: g.label, depth: g.depth, parent: resolveParent(g.parent) });
   }
 
   let lastParent = null;
@@ -50,7 +63,7 @@ export function createEpubAdapter(files) {
     const hit = tocIndex.get(s.href);
     let parent;
     if (hit) {
-      parent = resolveParent(s.href);
+      parent = resolveParent(hit.parent);
       lastParent = parent;
     } else {
       // TOC 没覆盖的文件（插页、版权页等）：继承前一个章节的父级。
@@ -98,6 +111,8 @@ export function createEpubAdapter(files) {
     kind: "epub",
     meta: { title: book.title, author: book.author, publisher: book.publisher, language: book.language },
     chapters,
+    // 只有标题、不对应文件的分组节点（第一部分 / Part I），建树时要用
+    groups,
     contentOf: (href) => (files.has(href) ? { bytes: files.get(href) } : null),
     plainOf: (href) => htmlToPlainText(bodyOf(href)),
     blobUrlFor,
